@@ -16,18 +16,55 @@
     "You should have received a copy of the GNU Affero General Public License",
     "along with this program.  If not, see <https://www.gnu.org/licenses/>."
   ],
-  "items": {
-    "Activated Indium": {
-      "rarity": 0.9,
-      "marketValue": 0.95,
-      "utility": 0.2,
-      "recommendation": "KEEP"
+  "nms_items": [
+    {
+      "id": "RESIDUAL_GOOP",
+      "name": "Residual Goop",
+      "category": "REFINABLE",
+      "tear_logic": {
+        "primary": "USE",
+        "condition": "has_personal_refiner",
+        "fallback": "SELL",
+        "note": "Refine into Nanites. If no refiner and inventory > 80%, shed a Golden Tear."
+      }
     },
-    "Silicate Powder": {
-      "rarity": 0.1,
-      "marketValue": 0.05,
-      "utility": 0.5,
-      "recommendation": "SELL"
+    {
+      "id": "NAV_DATA",
+      "name": "Navigation Data",
+      "category": "CURRENCY_ITEM",
+      "tear_logic": {
+        "primary": "SELL",
+        "threshold_stack": 20,
+        "note": "The Dragon hoards maps it never follows. Sell surplus above 20."
+      }
+    },
+    {
+      "id": "ACTIVATED_INDIUM",
+      "name": "Activated Indium",
+      "category": "HIGH_VALUE",
+      "tear_logic": {
+        "primary": "KEEP",
+        "note": "Dragon's Eye active. High market value material."
+      }
+    },
+    {
+      "id": "GEK_NIP",
+      "name": "GekNip",
+      "category": "TRADE_GOOD",
+      "tear_logic": {
+        "primary": "SELL",
+        "note": "Pure liquid asset. No crafting utility. Sell at the next trade terminal."
+      }
+    },
+    {
+      "id": "SILICATE_POWDER",
+      "name": "Silicate Powder",
+      "category": "TERRAIN_WASTE",
+      "tear_logic": {
+        "primary": "SELL",
+        "threshold_stack": 1000,
+        "note": "Unless base building, discard or sell the earth you've displaced."
+      }
     }
-  }
+  ]
 }

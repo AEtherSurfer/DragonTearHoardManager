@@ -16,6 +16,10 @@
 
 #pragma once
 
+#include <string>
+#include <optional>
+#include "DragonLogger.hpp"
+
 namespace DragonTear {
 
 enum class Recommendation {
@@ -24,30 +28,88 @@ enum class Recommendation {
     USE
 };
 
+struct PlayerState {
+    float inventoryFullness; // 0.0 to 1.0
+    bool hasPersonalRefiner;
+    int currentStackSize;
+    bool isObjectiveItem;
+};
+
+struct TearLogic {
+    std::string primary;
+    std::optional<std::string> condition;
+    std::optional<std::string> fallback;
+    std::optional<int> threshold_stack;
+    std::string note;
+};
+
+struct ItemData {
+    std::string id;
+    std::string name;
+    std::string category;
+    TearLogic tear_logic;
+};
+
 class TearEngine {
 public:
-    TearEngine(float keepThreshold, float sellThreshold)
-        : keepThreshold_(keepThreshold), sellThreshold_(sellThreshold) {}
+    TearEngine() {}
 
-    // Calculate Tear Threshold based on rarity, market value, and utility
-    Recommendation calculateRecommendation(float rarity, float marketValue, float utility) const {
-        float score = (rarity * 0.4f) + (marketValue * 0.4f) + (utility * 0.2f);
-
-        // Dragon Scale logic
-        if (score > keepThreshold_) {
-            // The Dragon's Eye stays open
+    Recommendation evaluateItem(const ItemData& item, const PlayerState& state) const {
+        // "Dragon's Eye" watchful over mission-critical items
+        if (state.isObjectiveItem) {
+            DragonLogger::logKeep(item.id, "Mission-critical objective item detected.");
             return Recommendation::KEEP;
-        } else if (score < sellThreshold_) {
-            // Shed a GOLDEN TEAR
+        }
+
+        if (item.category == "REFINABLE") {
+            if (state.hasPersonalRefiner) {
+                DragonLogger::logUse(item.id, "Refiner available for processing.");
+                return Recommendation::USE;
+            } else if (state.inventoryFullness > 0.8f) {
+                DragonLogger::logSell(item.id, "No refiner and inventory > 80%. Shedding a Golden Tear.");
+                return Recommendation::SELL;
+            } else {
+                DragonLogger::logKeep(item.id, "No refiner but inventory has space. Keeping for now.");
+                return Recommendation::KEEP;
+            }
+        }
+
+        if (item.tear_logic.threshold_stack.has_value()) {
+            if (state.currentStackSize > item.tear_logic.threshold_stack.value()) {
+                DragonLogger::logSell(item.id, "Stack size (" + std::to_string(state.currentStackSize) +
+                                               ") exceeds threshold (" + std::to_string(item.tear_logic.threshold_stack.value()) + ").");
+                return Recommendation::SELL;
+            } else if (item.category == "CURRENCY_ITEM" || item.category == "TERRAIN_WASTE") {
+                DragonLogger::logKeep(item.id, "Stack size is below threshold.");
+                return Recommendation::KEEP;
+            }
+        }
+
+        if (item.category == "TRADE_GOOD") {
+            DragonLogger::logSell(item.id, "Pure liquid asset. No crafting utility.");
             return Recommendation::SELL;
-        } else {
+        }
+
+        if (item.category == "HIGH_VALUE") {
+            DragonLogger::logKeep(item.id, "High-value asset detected.");
+            return Recommendation::KEEP;
+        }
+
+        // Default behavior based on tear logic
+        if (item.tear_logic.primary == "KEEP") {
+            DragonLogger::logKeep(item.id, item.tear_logic.note);
+            return Recommendation::KEEP;
+        } else if (item.tear_logic.primary == "SELL") {
+            DragonLogger::logSell(item.id, item.tear_logic.note);
+            return Recommendation::SELL;
+        } else if (item.tear_logic.primary == "USE") {
+            DragonLogger::logUse(item.id, item.tear_logic.note);
             return Recommendation::USE;
         }
-    }
 
-private:
-    float keepThreshold_;
-    float sellThreshold_;
+        DragonLogger::logKeep(item.id, "Default fallback. Dragon's Eye watchful.");
+        return Recommendation::KEEP;
+    }
 };
 
 } // namespace DragonTear
