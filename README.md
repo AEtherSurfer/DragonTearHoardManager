@@ -28,6 +28,12 @@ The core of this inventory manager lies in "Dragon Psychology," modeled after th
 *   **SELL**: Shed a GOLDEN TEAR. Low utility or value items are cast away, leaving only room for true treasure.
 *   **USE**: The intermediate state. It serves an immediate purpose without necessarily needing to be hoarded or cast away.
 
+### "The Mercenary" Archetype (Cyberpunk 2077)
+
+With our expansion to Cyberpunk 2077, we introduce "The Mercenary" logic. In Night City, carrying capacity is vital, and the choice is often between pure eddies (selling) and crafting components (disassembling). The engine calculates an **Efficiency Ratio** (Value per Weight unit).
+*   High efficiency items are marked to **SELL** for Eddies.
+*   Low efficiency items are marked to **USE** (Disassemble) for valuable crafting components.
+
 ## License & AGPL-3.0 Requirements
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.

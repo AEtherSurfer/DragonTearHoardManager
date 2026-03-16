@@ -53,3 +53,27 @@ TEST(TearEngine, RefinersPathWithoutRefinerSpaceAvailable) {
     PlayerState state{0.5f, false, 100, false}; // inventoryFullness <= 0.8, hasPersonalRefiner = false
     EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::KEEP);
 }
+
+TEST(TearEngine, MercenaryLogicHighEfficiencySells) {
+    TearEngine engine;
+    ItemData item{"LEXINGTON", "M-10AF Lexington", "WEAPON", {"KEEP", std::nullopt, std::nullopt, std::nullopt, ""}, 500.0f, 4.0f};
+    PlayerState state{0.5f, false, 1, false};
+    // efficiency = 500 / 4 = 125 > 100
+    EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::SELL);
+}
+
+TEST(TearEngine, MercenaryLogicLowEfficiencyDisassembles) {
+    TearEngine engine;
+    ItemData item{"LEXINGTON", "M-10AF Lexington", "WEAPON", {"KEEP", std::nullopt, std::nullopt, std::nullopt, ""}, 200.0f, 4.0f};
+    PlayerState state{0.5f, false, 1, false};
+    // efficiency = 200 / 4 = 50 <= 100 -> disassembles (USE)
+    EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::USE);
+}
+
+TEST(TearEngine, MercenaryLogicZeroWeightHandled) {
+    TearEngine engine;
+    ItemData item{"LIGHT_JACKET", "Light Jacket", "APPAREL", {"KEEP", std::nullopt, std::nullopt, std::nullopt, ""}, 50.0f, 0.0f};
+    PlayerState state{0.5f, false, 1, false};
+    // efficiency = 50 / 0 handled as 50 <= 100 -> disassembles (USE)
+    EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::USE);
+}

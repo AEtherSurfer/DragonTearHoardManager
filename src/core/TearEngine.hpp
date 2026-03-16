@@ -48,6 +48,15 @@ struct ItemData {
     std::string name;
     std::string category;
     TearLogic tear_logic;
+    float value = 0.0f;
+    float weight = 0.0f;
+
+    float getEfficiencyRatio() const {
+        if (weight <= 0.0f) {
+            return value;
+        }
+        return value / weight;
+    }
 };
 
 class TearEngine {
@@ -93,6 +102,19 @@ public:
         if (item.category == "HIGH_VALUE") {
             DragonLogger::logKeep(item.id, "High-value asset detected.");
             return Recommendation::KEEP;
+        }
+
+        // The Mercenary logic: Disassemble vs. Sell
+        if (item.category == "WEAPON" || item.category == "APPAREL") {
+            float efficiency = item.getEfficiencyRatio();
+            // Arbitrary threshold: If value-per-weight is high, we sell for Eddies
+            if (efficiency > 100.0f) {
+                DragonLogger::logSell(item.id, "High efficiency (" + std::to_string(efficiency) + "). Better sold for Eddies.");
+                return Recommendation::SELL;
+            } else {
+                DragonLogger::logUse(item.id, "Low efficiency (" + std::to_string(efficiency) + "). Better disassembled into components.");
+                return Recommendation::USE;
+            }
         }
 
         // Default behavior based on tear logic
