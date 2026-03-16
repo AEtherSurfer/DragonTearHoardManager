@@ -87,3 +87,44 @@ TEST(TearEngine, MercenaryLogicZeroWeightHandled) {
     // efficiency = 50 / 0 handled as 50 <= 100 -> disassembles (USE)
     EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::USE);
 }
+
+// TechAuditTests
+TEST(TearEngine, TechAuditUpgradeDetection) {
+    TearEngine engine;
+    ItemData item{"HYPERDRIVE_UPGRADE_S", "S-Class Hyperdrive Upgrade", "TECH_PACKAGE", {"KEEP", std::nullopt, std::nullopt, std::nullopt, "Upgrade"}, 100.0f, 0.0f, "Hyperdrive", 4};
+    PlayerState state;
+    state.isObjectiveItem = false;
+    state.equippedTech = {
+        {"Hyperdrive", 1, 0.0f},
+        {"Hyperdrive", 1, 0.0f},
+        {"Hyperdrive", 1, 0.0f}
+    };
+    EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::KEEP);
+}
+
+TEST(TearEngine, TechAuditRedundancy) {
+    TearEngine engine;
+    ItemData item{"SHIELD_UPGRADE_B", "B-Class Shield Upgrade", "TECH_PACKAGE", {"KEEP", std::nullopt, std::nullopt, std::nullopt, "Upgrade"}, 100.0f, 0.0f, "Shield", 2};
+    PlayerState state;
+    state.isObjectiveItem = false;
+    state.equippedTech = {
+        {"Shield", 4, 0.0f},
+        {"Shield", 4, 0.0f},
+        {"Shield", 4, 0.0f}
+    };
+    EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::SELL);
+}
+
+TEST(TearEngine, TechAuditObjectiveProtection) {
+    TearEngine engine;
+    ItemData item{"SPECIAL_TECH", "Objective Tech", "TECH_PACKAGE", {"SELL", std::nullopt, std::nullopt, std::nullopt, "Sell"}, 100.0f, 0.0f, "Hyperdrive", 1};
+    PlayerState state;
+    state.isObjectiveItem = true;
+    state.equippedTech = {
+        {"Hyperdrive", 4, 0.0f},
+        {"Hyperdrive", 4, 0.0f},
+        {"Hyperdrive", 4, 0.0f}
+    };
+    // Should be kept because it's an objective item
+    EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::KEEP);
+}

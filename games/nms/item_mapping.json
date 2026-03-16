@@ -65,6 +65,28 @@
         "threshold_stack": 1000,
         "note": "Unless base building, discard or sell the earth you've displaced."
       }
+    },
+    {
+      "id": "HYPERDRIVE_UPGRADE",
+      "name": "Hyperdrive Upgrade",
+      "category": "TECH_PACKAGE",
+      "technology_type": "Hyperdrive",
+      "class_tier": 4,
+      "tear_logic": {
+        "primary": "KEEP",
+        "note": "A potential upgrade."
+      }
+    },
+    {
+      "id": "SHIELD_UPGRADE",
+      "name": "Shield Upgrade",
+      "category": "TECH_PACKAGE",
+      "technology_type": "Shield",
+      "class_tier": 2,
+      "tear_logic": {
+        "primary": "KEEP",
+        "note": "A potential upgrade."
+      }
     }
   ]
 }
