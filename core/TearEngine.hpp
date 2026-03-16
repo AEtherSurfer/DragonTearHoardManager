@@ -33,6 +33,8 @@ struct PlayerState {
     bool hasPersonalRefiner;
     int currentStackSize;
     bool isObjectiveItem;
+    float currentWeight = 0.0f;
+    float maxWeight = 0.0f;
 };
 
 struct TearLogic {
@@ -104,11 +106,17 @@ public:
             return Recommendation::KEEP;
         }
 
-        // The Mercenary logic: Disassemble vs. Sell
-        if (item.category == "WEAPON" || item.category == "APPAREL") {
+        // The Mercenary logic: Disassemble vs. Sell (Mass-Limited Hoarding)
+        if (item.category == "WEAPON" || item.category == "APPAREL" || item.category == "JUNK") {
             float efficiency = item.getEfficiencyRatio();
-            // Arbitrary threshold: If value-per-weight is high, we sell for Eddies
-            if (efficiency > 100.0f) {
+            float threshold = 100.0f; // Arbitrary efficiency threshold
+
+            // If encumbrance is high, become more aggressive about getting rid of low-efficiency items
+            if (state.maxWeight > 0.0f && (state.currentWeight / state.maxWeight) > 0.8f) {
+                threshold = 150.0f; // Raise the threshold when encumbered
+            }
+
+            if (efficiency > threshold) {
                 DragonLogger::logSell(item.id, "High efficiency (" + std::to_string(efficiency) + "). Better sold for Eddies.");
                 return Recommendation::SELL;
             } else {

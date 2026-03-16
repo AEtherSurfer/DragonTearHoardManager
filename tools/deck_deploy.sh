@@ -16,25 +16,35 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Steam Deck Deployment Script Template
-# Usage: ./deck_deploy.sh <steam_deck_ip> <path_to_pak_file>
+# Usage: ./deck_deploy.sh <game> <steam_deck_ip> <path_to_file>
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <steam_deck_ip> <path_to_pak_file>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <game> <steam_deck_ip> <path_to_file>"
+    echo "  <game> must be 'nms' or 'cyberpunk'"
     exit 1
 fi
 
-STEAM_DECK_IP=$1
-PAK_FILE_PATH=$2
+GAME=$1
+STEAM_DECK_IP=$2
+FILE_PATH=$3
 STEAM_DECK_USER="deck"
-NMS_MODS_DIR="/home/deck/.local/share/Steam/steamapps/common/No Man's Sky/GAMEDATA/PCBANKS/MODS/"
 
-if [ ! -f "$PAK_FILE_PATH" ]; then
-    echo "Error: .pak file not found at $PAK_FILE_PATH"
+if [ "$GAME" == "nms" ]; then
+    TARGET_DIR="/home/deck/.local/share/Steam/steamapps/common/No Man's Sky/GAMEDATA/PCBANKS/MODS/"
+elif [ "$GAME" == "cyberpunk" ]; then
+    TARGET_DIR="/home/deck/.local/share/Steam/steamapps/common/Cyberpunk 2077/bin/x64/plugins/cyber_engine_tweaks/mods/"
+else
+    echo "Error: game must be 'nms' or 'cyberpunk'"
     exit 1
 fi
 
-echo "Deploying $PAK_FILE_PATH to Steam Deck at $STEAM_DECK_IP..."
-rsync -avzP "$PAK_FILE_PATH" "${STEAM_DECK_USER}@${STEAM_DECK_IP}:'${NMS_MODS_DIR}'"
+if [ ! -e "$FILE_PATH" ]; then
+    echo "Error: file not found at $FILE_PATH"
+    exit 1
+fi
+
+echo "Deploying $FILE_PATH for $GAME to Steam Deck at $STEAM_DECK_IP..."
+rsync -avzP "$FILE_PATH" "${STEAM_DECK_USER}@${STEAM_DECK_IP}:'${TARGET_DIR}'"
 
 if [ $? -eq 0 ]; then
     echo "Deployment successful."
