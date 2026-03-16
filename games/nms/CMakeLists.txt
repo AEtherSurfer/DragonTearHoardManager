@@ -15,20 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.10)
+project(DTHM_NMS)
 
-project(DTHM_Cyberpunk2077)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-# Make sure core is available if building standalone
-if(NOT TARGET core)
-    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../core ${CMAKE_CURRENT_BINARY_DIR}/core)
-endif()
-
-# RED4ext Plugin shared library
-add_library(DTHM_Cyberpunk2077 SHARED src/plugin.cpp)
-target_link_libraries(DTHM_Cyberpunk2077 PRIVATE core)
-
-# Position independent code for shared library
-set_target_properties(DTHM_Cyberpunk2077 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# NMS mod has no C++ source right now, just resources or scripts, but to be safe and consistent:
+add_custom_target(DTHM_NMS ALL
+    COMMAND ${CMAKE_COMMAND} -E echo "NMS target built"
+)

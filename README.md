@@ -20,6 +20,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 Welcome to the Dragon Tear Hoard Manager, an inventory optimization mod suite!
 
+## Project Structure
+
+This project is a monorepo that supports multiple games using a shared C++ core:
+
+*   `/core/`: Game-agnostic C++ core logic (e.g., `TearEngine.hpp`).
+*   `/games/nms/`: No Man's Sky specific mod files, mappings, and hooks.
+*   `/games/cyberpunk-2077/`: Cyberpunk 2077 specific files, including RED4ext C++ plugin, Redscript, and Lua.
+*   `/tools/`: Shared deployment and utility scripts.
+*   `/tests/`: Shared test suite for the core engine.
+
+## Hoard Modes
+
+The "Tear Engine" provides logic to handle different types of game inventories:
+
+1.  **Slot-Limited (NMS)**: Focuses on stack sizes and slot availability. Items that exceed configured thresholds are marked for action based on current inventory space.
+2.  **Mass-Limited (Cyberpunk)**: Focuses on value-to-weight ratios and encumbrance. The engine calculates an efficiency ratio and factors in the player's current carrying weight vs. max carrying weight to dynamically adjust discard thresholds.
+
 ## Dragon Psychology 101
 
 The core of this inventory manager lies in "Dragon Psychology," modeled after the mythical instincts of a dragon hoarding its treasure. The "Tear Engine" uses a unique formula—the "Dragon Scale" logic—to determine the optimal action for any given item:
