@@ -18,6 +18,7 @@
 
 #include <string>
 #include <optional>
+#include <vector>
 #include "DragonLogger.hpp"
 
 namespace DragonTear {
@@ -28,6 +29,12 @@ enum class Recommendation {
     USE
 };
 
+struct InstalledTech {
+    std::string techType;
+    int classTier;
+    float qualityScore;
+};
+
 struct PlayerState {
     float inventoryFullness; // 0.0 to 1.0
     bool hasPersonalRefiner;
@@ -35,6 +42,7 @@ struct PlayerState {
     bool isObjectiveItem;
     float currentWeight = 0.0f;
     float maxWeight = 0.0f;
+    std::vector<InstalledTech> equippedTech;
 };
 
 struct TearLogic {
@@ -52,6 +60,8 @@ struct ItemData {
     TearLogic tear_logic;
     float value = 0.0f;
     float weight = 0.0f;
+    std::optional<std::string> technology_type;
+    std::optional<int> class_tier;
 
     float getEfficiencyRatio() const {
         if (weight <= 0.0f) {
@@ -104,6 +114,54 @@ public:
         if (item.category == "HIGH_VALUE") {
             DragonLogger::logKeep(item.id, "High-value asset detected.");
             return Recommendation::KEEP;
+        }
+
+        if (item.category == "TECH_PACKAGE" && item.technology_type.has_value() && item.class_tier.has_value()) {
+            int newTier = item.class_tier.value();
+
+            auto getTierString = [](int tier) -> std::string {
+                switch(tier) {
+                    case 1: return "C";
+                    case 2: return "B";
+                    case 3: return "A";
+                    case 4: return "S";
+                    case 5: return "X";
+                    default: return "Unknown";
+                }
+            };
+
+            if (newTier == 5) {
+                DragonLogger::logUse(item.id, "X-Class (Illegal) package. A strategic gamble.");
+                return Recommendation::USE;
+            }
+
+            int installedCount = 0;
+            int lowestInstalledTier = 999;
+
+            for (const auto& tech : state.equippedTech) {
+                if (tech.techType == item.technology_type.value()) {
+                    installedCount++;
+                    if (tech.classTier < lowestInstalledTier) {
+                        lowestInstalledTier = tech.classTier;
+                    }
+                }
+            }
+
+            if (installedCount >= 3) {
+                if (newTier <= lowestInstalledTier) {
+                    std::string msg = getTierString(newTier) + "-Class module is redundant. Inventory space reclaimed.";
+                    DragonLogger::logSell(item.id, msg);
+                    return Recommendation::SELL;
+                } else {
+                    std::string msg = "Found " + getTierString(newTier) + "-Class module. Superior to current " + getTierString(lowestInstalledTier) + "-Class install.";
+                    DragonLogger::logKeep(item.id, msg);
+                    return Recommendation::KEEP;
+                }
+            } else {
+                std::string msg = "Found " + getTierString(newTier) + "-Class module. Under the 3-module limit.";
+                DragonLogger::logKeep(item.id, msg);
+                return Recommendation::KEEP;
+            }
         }
 
         // The Mercenary logic: Disassemble vs. Sell (Mass-Limited Hoarding)
