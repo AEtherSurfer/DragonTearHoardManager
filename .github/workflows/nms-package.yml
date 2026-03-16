@@ -1,0 +1,27 @@
+name: Mod Packaging
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create directory structure
+        run: mkdir -p build/MOD_DragonTear/GAMEDATA/MODS/
+
+      - name: Copy files
+        run: |
+          cp -r src/nms/* build/MOD_DragonTear/GAMEDATA/MODS/
+          cp -r assets/* build/MOD_DragonTear/GAMEDATA/MODS/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DragonTearHoardManager-NMS
+          path: build/MOD_DragonTear/
