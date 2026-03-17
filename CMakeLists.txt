@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(DragonTearHoardManager)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -24,6 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_subdirectory(core)
 add_subdirectory(games/nms)
 add_subdirectory(games/cyberpunk-2077)
+add_subdirectory(games/nms-cpp)
 
 # Testing
 enable_testing()
