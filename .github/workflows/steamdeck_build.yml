@@ -1,0 +1,34 @@
+name: Build Steam Deck Binary
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-steamos:
+    runs-on: ubuntu-22.04 # 22.04 ensures safe glibc compatibility for SteamOS
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++
+
+    - name: Configure CMake (With Static Linking)
+      # We pass flags to statically link the C++ standard libraries
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-static-libstdc++ -static-libgcc"
+
+    - name: Build Oracle
+      run: cmake --build build --config Release
+
+    - name: Upload Steam Deck Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dthm_oracle_steamdeck
+        path: build/games/nms-cpp/dthm_oracle # Path to the compiled executable
+
