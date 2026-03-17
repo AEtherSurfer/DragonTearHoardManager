@@ -9,9 +9,20 @@
 #pragma once
 
 #include <string>
+#include <vector>
+#include <optional>
+#include <nlohmann/json.hpp>
+#include "TearEngine.hpp"
 
 namespace dthm {
 namespace nms {
+
+struct HoardReport {
+    std::vector<std::string> keep;
+    std::vector<std::string> sell;
+    std::vector<std::string> use;
+    int redundantTechFound = 0;
+};
 
 class InventoryParser {
 public:
@@ -19,6 +30,22 @@ public:
     ~InventoryParser();
 
     std::string ExtractPlayerState(const std::string& filePath);
+    void ParseItemMapping(const std::string& mappingFilePath);
+    HoardReport GenerateHoardReport();
+
+    // For testing and internal use
+    void ExtractPlayerState(const nlohmann::json& saveData);
+    const DragonTear::PlayerState& GetPlayerState() const { return m_playerState; }
+
+    int GetPopulatedSlots() const { return m_populatedSlots; }
+    int GetTotalSlots() const { return m_totalSlots; }
+
+private:
+    DragonTear::PlayerState m_playerState;
+    std::vector<DragonTear::ItemData> m_itemMapping;
+    std::vector<std::pair<std::string, int>> m_inventorySlots; // NMS ID, Amount
+    int m_populatedSlots = 0;
+    int m_totalSlots = 0;
 };
 
 } // namespace nms

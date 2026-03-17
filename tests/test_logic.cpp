@@ -15,7 +15,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <gtest/gtest.h>
+#include <fstream>
 #include "TearEngine.hpp"
+#include "../games/nms-cpp/src/InventoryParser.hpp"
 
 using namespace DragonTear;
 
@@ -86,6 +88,40 @@ TEST(TearEngine, MercenaryLogicZeroWeightHandled) {
     PlayerState state{0.5f, false, 1, false, 50.0f, 100.0f};
     // efficiency = 50 / 0 handled as 50 <= 100 -> disassembles (USE)
     EXPECT_EQ(engine.evaluateItem(item, state), Recommendation::USE);
+}
+
+TEST(InventoryParserIntegration, ParsesMockEndgameSave) {
+    dthm::nms::InventoryParser parser;
+
+    std::ifstream file("../tests/data/mock_endgame_save.json");
+    if (!file.is_open()) {
+        file.open("tests/data/mock_endgame_save.json"); // try relative to root
+        if (!file.is_open()) {
+            FAIL() << "Could not open mock_endgame_save.json";
+        }
+    }
+
+    nlohmann::json mockJson;
+    file >> mockJson;
+
+    parser.ExtractPlayerState(mockJson);
+
+    auto state = parser.GetPlayerState();
+    EXPECT_FLOAT_EQ(state.inventoryFullness, 2.0f / 3.0f); // 2 populated slots out of 3 valid
+
+    auto report = parser.GenerateHoardReport();
+    EXPECT_GE(report.keep.size() + report.sell.size() + report.use.size(), 2);
+}
+
+TEST(InventoryParserIntegration, HandlesEmptyOrMalformedSave) {
+    dthm::nms::InventoryParser parser;
+    nlohmann::json emptyJson;
+    EXPECT_NO_THROW({
+        parser.ExtractPlayerState(emptyJson);
+    });
+
+    auto state = parser.GetPlayerState();
+    EXPECT_FLOAT_EQ(state.inventoryFullness, 0.0f);
 }
 
 // TechAuditTests
