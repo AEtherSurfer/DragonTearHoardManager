@@ -86,13 +86,41 @@ void InventoryParser::ExtractPlayerState(const nlohmann::json& saveData) {
                         if (slot.contains("Type") && slot["Type"].contains("InventoryType")) {
                             std::string invType = slot["Type"]["InventoryType"].get<std::string>();
                             if (invType == "Technology") {
-                                // We extract a mock tech type and tier based on the ID for simplicity
-                                // Usually, we'd look up the item mapping to find the tech type and tier
-                                // We'll just store a placeholder and refine it in GenerateHoardReport if needed.
                                 DragonTear::InstalledTech tech;
                                 tech.techType = "Unknown";
                                 tech.classTier = 1;
                                 tech.qualityScore = 0.0f;
+
+                                // Parse mapping to find correct values at extraction time
+                                auto it = std::find_if(m_itemMapping.begin(), m_itemMapping.end(),
+                                    [&id](const DragonTear::ItemData& d) {
+                                        if (d.id == id) return true;
+                                        size_t last_underscore = id.find_last_of('_');
+                                        if (last_underscore != std::string::npos && last_underscore == id.length() - 2) {
+                                            char tierChar = id.back();
+                                            if (tierChar == 'C' || tierChar == 'B' || tierChar == 'A' || tierChar == 'S' || tierChar == 'X') {
+                                                return d.id == id.substr(0, last_underscore);
+                                            }
+                                        }
+                                        return false;
+                                    });
+
+                                if (it != m_itemMapping.end() && it->category == "TECH_PACKAGE" && it->technology_type.has_value()) {
+                                    tech.techType = it->technology_type.value();
+                                    if (it->class_tier.has_value()) {
+                                        tech.classTier = it->class_tier.value();
+                                    } else {
+                                        size_t last_underscore = id.find_last_of('_');
+                                        if (last_underscore != std::string::npos && last_underscore == id.length() - 2) {
+                                            char tierChar = id.back();
+                                            if (tierChar == 'C') tech.classTier = 1;
+                                            else if (tierChar == 'B') tech.classTier = 2;
+                                            else if (tierChar == 'A') tech.classTier = 3;
+                                            else if (tierChar == 'S') tech.classTier = 4;
+                                            else if (tierChar == 'X') tech.classTier = 5;
+                                        }
+                                    }
+                                }
                                 m_playerState.equippedTech.push_back(tech);
                             }
                         }
@@ -164,7 +192,18 @@ HoardReport InventoryParser::GenerateHoardReport() {
 
         // Find item in mapping
         auto it = std::find_if(m_itemMapping.begin(), m_itemMapping.end(),
-            [&itemId](const DragonTear::ItemData& d) { return d.id == itemId || d.id == itemId.substr(0, itemId.find_last_of('_')); });
+            [&itemId](const DragonTear::ItemData& d) {
+                if (d.id == itemId) return true;
+                // Only fallback if the item is explicitly a procedural upgrade module ending in _C, _B, _A, _S, or _X
+                size_t last_underscore = itemId.find_last_of('_');
+                if (last_underscore != std::string::npos && last_underscore == itemId.length() - 2) {
+                    char tierChar = itemId.back();
+                    if (tierChar == 'C' || tierChar == 'B' || tierChar == 'A' || tierChar == 'S' || tierChar == 'X') {
+                        return d.id == itemId.substr(0, last_underscore);
+                    }
+                }
+                return false;
+            });
 
         DragonTear::ItemData currentItem;
         if (it != m_itemMapping.end()) {

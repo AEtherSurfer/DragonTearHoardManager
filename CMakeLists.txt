@@ -31,6 +31,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 add_executable(dthm_tests tests/test_logic.cpp)
+target_compile_definitions(dthm_tests PRIVATE TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data/")
 target_link_libraries(dthm_tests core dthm_oracle nlohmann_json::nlohmann_json GTest::gtest_main)
 
 add_test(NAME TearLogicTests COMMAND dthm_tests)

@@ -16,7 +16,12 @@
 
 #include <gtest/gtest.h>
 #include <fstream>
+#include <string>
 #include "TearEngine.hpp"
+
+#ifndef TEST_DATA_DIR
+#define TEST_DATA_DIR ""
+#endif
 #include "../games/nms-cpp/src/InventoryParser.hpp"
 
 using namespace DragonTear;
@@ -93,12 +98,10 @@ TEST(TearEngine, MercenaryLogicZeroWeightHandled) {
 TEST(InventoryParserIntegration, ParsesMockEndgameSave) {
     dthm::nms::InventoryParser parser;
 
-    std::ifstream file("../tests/data/mock_endgame_save.json");
+    std::string path = std::string(TEST_DATA_DIR) + "mock_endgame_save.json";
+    std::ifstream file(path);
     if (!file.is_open()) {
-        file.open("tests/data/mock_endgame_save.json"); // try relative to root
-        if (!file.is_open()) {
-            FAIL() << "Could not open mock_endgame_save.json";
-        }
+        FAIL() << "Could not open " << path;
     }
 
     nlohmann::json mockJson;

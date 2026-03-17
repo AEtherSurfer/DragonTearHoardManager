@@ -4,3 +4,5 @@ build/
 *.so
 dthm_tests
 *.env
+dthm_dragon.log
+*.log

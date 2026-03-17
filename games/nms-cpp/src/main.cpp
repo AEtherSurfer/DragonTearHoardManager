@@ -8,7 +8,12 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
+#include <chrono>
+#include <nlohmann/json.hpp>
 #include "InventoryParser.hpp"
+#include "SaveWatcher.hpp"
+#include "WebServer.hpp"
 
 using namespace dthm::nms;
 
@@ -31,49 +36,44 @@ int main(int argc, char* argv[]) {
     }
 
     printHeader();
+    std::cout << "[DTHM] Dragon's Eye open. Web server listening on http://0.0.0.0:8080. Waiting for save file updates...\n";
 
     InventoryParser parser;
     std::cout << "Loading item mapping from " << mappingFilePath << "...\n";
     parser.ParseItemMapping(mappingFilePath);
 
-    std::cout << "Parsing save file " << saveFilePath << "...\n";
-    parser.ExtractPlayerState(saveFilePath);
+    WebServer server(8080);
 
-    auto state = parser.GetPlayerState();
+    // Initial load
+    std::cout << "Parsing initial save file " << saveFilePath << "...\n";
+    parser.ExtractPlayerState(saveFilePath);
     auto report = parser.GenerateHoardReport();
 
-    std::cout << "\n---------------------------------------\n";
-    std::cout << "\n\033[1;36m👁️ THE DRAGON'S EYE (Keep)\033[0m\n";
-    if (report.keep.empty()) {
-        std::cout << "  (None)\n";
-    } else {
-        for (const auto& item : report.keep) {
-            std::cout << "  " << item << "\n";
-        }
-    }
+    // Package into JSON
+    nlohmann::json reportJson;
+    reportJson["keep"] = report.keep;
+    reportJson["sell"] = report.sell;
+    reportJson["use"] = report.use;
+    server.UpdateReport(reportJson);
 
-    std::cout << "\n\033[1;33m💧 THE GOLDEN TEAR (Sell/Discard)\033[0m\n";
-    if (report.sell.empty()) {
-        std::cout << "  (None)\n";
-    } else {
-        for (const auto& item : report.sell) {
-            std::cout << "  " << item << "\n";
-        }
-    }
+    // Setup watcher
+    SaveWatcher watcher(saveFilePath);
+    watcher.OnChange([&]() {
+        parser.ExtractPlayerState(saveFilePath);
+        auto newReport = parser.GenerateHoardReport();
 
-    std::cout << "\n\033[1;31m🔥 THE REFINER'S FIRE (Use/Refine)\033[0m\n";
-    if (report.use.empty()) {
-        std::cout << "  (None)\n";
-    } else {
-        for (const auto& item : report.use) {
-            std::cout << "  " << item << "\n";
-        }
-    }
+        nlohmann::json newReportJson;
+        newReportJson["keep"] = newReport.keep;
+        newReportJson["sell"] = newReport.sell;
+        newReportJson["use"] = newReport.use;
+        server.UpdateReport(newReportJson);
+    });
 
-    std::cout << "\n---------------------------------------\n";
-    std::cout << "Summary:\n";
-    std::cout << "Inventory Fullness: " << parser.GetPopulatedSlots() << "/" << parser.GetTotalSlots() << " Slots.\n";
-    std::cout << "Redundant Tech Found: " << report.redundantTechFound << ".\n";
+    // Start background tasks
+    watcher.Start();
+
+    // Start server on main thread (blocking)
+    server.Start();
 
     return 0;
 }
