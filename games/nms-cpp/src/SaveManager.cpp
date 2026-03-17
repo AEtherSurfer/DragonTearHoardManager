@@ -29,16 +29,15 @@ std::string SaveManager::ReadSaveFile(const std::string& filePath) {
     }
 
     file.seekg(0, std::ios::end);
-    std::streamsize size = file.tellg();
+    std::streamsize fsize = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    if (size <= 0) {
+    if (fsize <= 0) {
         return "";
     }
-    }
 
-    std::string content(size, '\0');
-    if (file.read(&content[0], size)) {
+    std::string content(fsize, '\0');
+    if (file.read(&content[0], fsize)) {
         return content;
     }
     return "";
