@@ -1,0 +1,29 @@
+{
+  "PlayerStateData": {
+    "Inventory_Personal": {
+      "Slots": [
+        {
+          "Type": {
+            "InventoryType": "Product"
+          },
+          "Id": "^RESIDUAL_GOOP",
+          "Amount": 100,
+          "MaxAmount": 9999
+        },
+        {
+          "Type": {
+            "InventoryType": "Technology"
+          },
+          "Id": "^HYPERDRIVE_UPGRADE_S",
+          "Amount": 1,
+          "MaxAmount": 1
+        }
+      ],
+      "ValidSlotIndices": [
+        { "X": 0, "Y": 0 },
+        { "X": 1, "Y": 0 },
+        { "X": 2, "Y": 0 }
+      ]
+    }
+  }
+}
