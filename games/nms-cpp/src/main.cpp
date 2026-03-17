@@ -58,12 +58,9 @@ int main(int argc, char* argv[]) {
     WebServer server(8080);
     std::mutex reportMutex;
 
-    // Setup watcher
-    SaveWatcher watcher(targetDir);
-    watcher.OnChange([&](const std::string& changedFilePath) {
+    auto updateReport = [&](const std::string& filePath) {
         std::lock_guard<std::mutex> lock(reportMutex);
-        std::cout << "[DTHM] Save file updated detected: " << changedFilePath << ". Regenerating Hoard Report...\n";
-        parser.ExtractPlayerState(changedFilePath);
+        parser.ExtractPlayerState(filePath);
         auto newReport = parser.GenerateHoardReport();
 
         nlohmann::json newReportJson;
@@ -71,6 +68,36 @@ int main(int argc, char* argv[]) {
         newReportJson["sell"] = newReport.sell;
         newReportJson["use"] = newReport.use;
         server.UpdateReport(newReportJson);
+    };
+
+    // Initial load
+    std::string newestFile = "";
+    std::filesystem::file_time_type newestTime = std::filesystem::file_time_type::min();
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(targetDir)) {
+        if (entry.is_regular_file()) {
+            std::string filename = entry.path().filename().string();
+            if (filename.length() >= 3 && filename.substr(filename.length() - 3) == ".hg" && filename.substr(0, 3) != "mf_") {
+                auto time = std::filesystem::last_write_time(entry.path());
+                if (time > newestTime) {
+                    newestTime = time;
+                    newestFile = entry.path().string();
+                }
+            }
+        }
+    }
+
+    if (!newestFile.empty()) {
+        std::cout << "Parsing initial save file " << newestFile << "...\n";
+        updateReport(newestFile);
+    }
+
+    // Setup watcher
+    SaveWatcher watcher(targetDir);
+    watcher.OnChange([&](const std::string& changedFilePath) {
+        std::string filename = std::filesystem::path(changedFilePath).filename().string();
+        std::cout << "[DTHM] Save file updated detected: " << filename << ". Regenerating Hoard Report...\n";
+        updateReport(changedFilePath);
     });
 
     // Start background tasks

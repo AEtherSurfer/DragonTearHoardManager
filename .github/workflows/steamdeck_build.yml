@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-steamos:
     runs-on: ubuntu-22.04 # 22.04 ensures safe glibc compatibility for SteamOS
@@ -17,7 +20,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake g++
+        sudo apt-get install -y cmake g++ libgtest-dev
 
     - name: Configure CMake (With Static Linking)
       # We pass flags to statically link the C++ standard libraries
