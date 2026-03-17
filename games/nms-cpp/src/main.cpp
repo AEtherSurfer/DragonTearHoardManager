@@ -24,42 +24,46 @@ void printHeader() {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <path_to_save.json> [path_to_item_mapping.json]\n";
-        return 1;
+    std::string targetDir;
+    std::string mappingFilePath = "games/nms/item_mapping.json"; // Default fallback
+
+    if (argc > 1) {
+        targetDir = argv[1];
+    } else {
+        const char* homeDir = getenv("HOME");
+        if (homeDir) {
+            targetDir = std::string(homeDir) + "/.local/share/Steam/steamapps/compatdata/275850/pfx/drive_c/users/steamuser/AppData/Roaming/HelloGames/NMS/";
+        } else {
+            std::cerr << "Error: HOME environment variable not found. Please provide save directory as an argument.\n";
+            return 1;
+        }
     }
 
-    std::string saveFilePath = argv[1];
-    std::string mappingFilePath = "games/nms/item_mapping.json"; // Default fallback
     if (argc >= 3) {
         mappingFilePath = argv[2];
     }
 
+    if (!std::filesystem::exists(targetDir)) {
+        std::cerr << "Error: Save directory does not exist: " << targetDir << "\n";
+        return 1;
+    }
+
     printHeader();
-    std::cout << "[DTHM] Dragon's Eye open. Web server listening on http://0.0.0.0:8080. Waiting for save file updates...\n";
+    std::cout << "[DTHM] Dragon's Eye open. Web server listening on http://0.0.0.0:8080. Waiting for save file updates in " << targetDir << "...\n";
 
     InventoryParser parser;
     std::cout << "Loading item mapping from " << mappingFilePath << "...\n";
     parser.ParseItemMapping(mappingFilePath);
 
     WebServer server(8080);
-
-    // Initial load
-    std::cout << "Parsing initial save file " << saveFilePath << "...\n";
-    parser.ExtractPlayerState(saveFilePath);
-    auto report = parser.GenerateHoardReport();
-
-    // Package into JSON
-    nlohmann::json reportJson;
-    reportJson["keep"] = report.keep;
-    reportJson["sell"] = report.sell;
-    reportJson["use"] = report.use;
-    server.UpdateReport(reportJson);
+    std::mutex reportMutex;
 
     // Setup watcher
-    SaveWatcher watcher(saveFilePath);
-    watcher.OnChange([&]() {
-        parser.ExtractPlayerState(saveFilePath);
+    SaveWatcher watcher(targetDir);
+    watcher.OnChange([&](const std::string& changedFilePath) {
+        std::lock_guard<std::mutex> lock(reportMutex);
+        std::cout << "[DTHM] Save file updated detected: " << changedFilePath << ". Regenerating Hoard Report...\n";
+        parser.ExtractPlayerState(changedFilePath);
         auto newReport = parser.GenerateHoardReport();
 
         nlohmann::json newReportJson;

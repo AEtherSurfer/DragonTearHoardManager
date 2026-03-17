@@ -13,27 +13,28 @@
 #include <thread>
 #include <atomic>
 #include <filesystem>
+#include <unordered_map>
 
 namespace dthm {
 namespace nms {
 
 class SaveWatcher {
 public:
-    SaveWatcher(const std::string& filePath);
+    SaveWatcher(const std::string& saveDirectory);
     ~SaveWatcher();
 
-    void OnChange(std::function<void()> callback);
+    void OnChange(std::function<void(const std::string&)> callback);
     void Start();
     void Stop();
 
 private:
     void WatchLoop();
 
-    std::string m_filePath;
-    std::function<void()> m_callback;
+    std::string m_saveDirectory;
+    std::function<void(const std::string&)> m_callback;
     std::thread m_watcherThread;
     std::atomic<bool> m_running{false};
-    std::filesystem::file_time_type m_lastWriteTime;
+    std::unordered_map<std::string, std::filesystem::file_time_type> m_fileTimestamps;
 };
 
 } // namespace nms
