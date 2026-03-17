@@ -3,3 +3,4 @@ build/
 *.a
 *.so
 dthm_tests
+*.env
