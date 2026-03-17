@@ -24,6 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_subdirectory(core)
 add_subdirectory(games/nms)
 add_subdirectory(games/cyberpunk-2077)
+add_subdirectory(games/nms-cpp)
 
 # Testing
 enable_testing()
