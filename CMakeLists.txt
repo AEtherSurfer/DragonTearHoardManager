@@ -30,7 +30,7 @@ add_subdirectory(games/nms-cpp)
 enable_testing()
 find_package(GTest REQUIRED)
 
-add_executable(dthm_tests tests/test_logic.cpp)
+add_executable(dthm_tests tests/test_logic.cpp tests/test_real_saves.cpp)
 target_compile_definitions(dthm_tests PRIVATE TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data/")
 target_link_libraries(dthm_tests core dthm_oracle nlohmann_json::nlohmann_json GTest::gtest_main)
 
