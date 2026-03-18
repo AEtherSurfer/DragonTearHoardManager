@@ -33,5 +33,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: dthm_oracle_steamdeck
-        path: build/games/nms-cpp/dthm_oracle # Path to the compiled executable
+        path: build/games/nms-cpp/dthm_oracle_exe # Path to the compiled executable
 
