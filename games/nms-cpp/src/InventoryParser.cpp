@@ -164,20 +164,21 @@ void InventoryParser::ExtractPlayerState(const nlohmann::json& saveData) {
     m_quicksilver = 0;
 
     try {
+        const nlohmann::json* psd = nullptr;
+
         if (saveData.contains("PlayerStateData")) {
-            auto psd = saveData["PlayerStateData"];
-            m_units = psd.value("Units", 0LL);
-            m_nanites = psd.value("Nanites", 0LL);
-            m_quicksilver = psd.value("Specials", 0LL);
+            psd = &saveData["PlayerStateData"];
         } else if (saveData.contains("BaseContext") && saveData["BaseContext"].contains("PlayerStateData")) {
-            auto psd = saveData["BaseContext"]["PlayerStateData"];
-            m_units = psd.value("Units", 0LL);
-            m_nanites = psd.value("Nanites", 0LL);
-            m_quicksilver = psd.value("Specials", 0LL);
+            psd = &saveData["BaseContext"]["PlayerStateData"];
         }
 
-        if (saveData.contains("PlayerStateData") && saveData["PlayerStateData"].contains("Inventory_Personal")) {
-            const auto& inventory = saveData["PlayerStateData"]["Inventory_Personal"];
+        if (psd != nullptr) {
+            m_units = psd->value("Units", 0LL);
+            m_nanites = psd->value("Nanites", 0LL);
+            m_quicksilver = psd->value("Specials", 0LL);
+
+            if (psd->contains("Inventory_Personal")) {
+                const auto& inventory = (*psd)["Inventory_Personal"];
 
             int totalSlots = 0;
             if (inventory.contains("ValidSlotIndices")) {
@@ -255,6 +256,7 @@ void InventoryParser::ExtractPlayerState(const nlohmann::json& saveData) {
                 m_playerState.inventoryFullness = static_cast<float>(populatedSlots) / totalSlots;
             } else {
                 m_playerState.inventoryFullness = 0.0f;
+            }
             }
         }
     } catch (const nlohmann::json::exception& e) {
