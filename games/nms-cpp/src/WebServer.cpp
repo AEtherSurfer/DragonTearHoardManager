@@ -103,11 +103,58 @@ std::string WebServer::GenerateHtml() {
         li:last-child {
             border-bottom: none;
         }
+        .stats-bar {
+            background-color: #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .stat-item {
+            margin: 5px 15px;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #f39c12;
+            font-size: 1.2em;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            color: #bdc3c7;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
     <h1>Dragon Tear Hoard Manager</h1>
     <div class="container">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-units">--</div>
+                <div class="stat-label">Units</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-nanites">--</div>
+                <div class="stat-label">Nanites</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-quicksilver">--</div>
+                <div class="stat-label">Quicksilver</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-last-save">--</div>
+                <div class="stat-label">Last Save Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-age">--</div>
+                <div class="stat-label">Age</div>
+            </div>
+        </div>
+
         <div class="card keep">
             <h2 class="card-title">👁️ THE DRAGON'S EYE (Keep)</h2>
             <ul id="keep-list">Loading...</ul>
@@ -123,10 +170,41 @@ std::string WebServer::GenerateHtml() {
     </div>
 
     <script>
+        let lastKnownSaveTimestamp = 0;
+
+        function updateAge() {
+            if (!lastKnownSaveTimestamp) return;
+            const now = Math.floor(Date.now() / 1000);
+            const diffSeconds = Math.max(0, now - lastKnownSaveTimestamp);
+
+            let ageStr = "";
+            if (diffSeconds < 60) {
+                ageStr = diffSeconds + " seconds ago";
+            } else if (diffSeconds < 3600) {
+                const mins = Math.floor(diffSeconds / 60);
+                ageStr = mins + (mins === 1 ? " min ago" : " mins ago");
+            } else {
+                const hrs = Math.floor(diffSeconds / 3600);
+                ageStr = hrs + (hrs === 1 ? " hour ago" : " hours ago");
+            }
+            document.getElementById('stat-age').textContent = ageStr;
+        }
+
         async function fetchReport() {
             try {
                 const response = await fetch('/api/report');
                 const data = await response.json();
+
+                if (data.units !== undefined) document.getElementById('stat-units').textContent = data.units.toLocaleString();
+                if (data.nanites !== undefined) document.getElementById('stat-nanites').textContent = data.nanites.toLocaleString();
+                if (data.quicksilver !== undefined) document.getElementById('stat-quicksilver').textContent = data.quicksilver.toLocaleString();
+
+                if (data.lastSaveTime !== undefined) {
+                    lastKnownSaveTimestamp = data.lastSaveTime;
+                    const saveDate = new Date(data.lastSaveTime * 1000);
+                    document.getElementById('stat-last-save').textContent = saveDate.toLocaleTimeString();
+                    updateAge();
+                }
 
                 const populateList = (id, items) => {
                     const list = document.getElementById(id);
@@ -153,6 +231,7 @@ std::string WebServer::GenerateHtml() {
         // Fetch immediately, then every 5 seconds
         fetchReport();
         setInterval(fetchReport, 5000);
+        setInterval(updateAge, 1000); // Update age every second
     </script>
 </body>
 </html>

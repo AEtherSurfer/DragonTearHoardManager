@@ -22,6 +22,9 @@ struct HoardReport {
     std::vector<std::string> sell;
     std::vector<std::string> use;
     int redundantTechFound = 0;
+    long long units = 0;
+    long long nanites = 0;
+    long long quicksilver = 0;
 };
 
 class InventoryParser {
@@ -49,6 +52,10 @@ private:
     std::vector<std::pair<std::string, int>> m_inventorySlots; // NMS ID, Amount
     int m_populatedSlots = 0;
     int m_totalSlots = 0;
+
+    long long m_units = 0;
+    long long m_nanites = 0;
+    long long m_quicksilver = 0;
 };
 
 } // namespace nms
