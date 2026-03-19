@@ -159,10 +159,26 @@ std::string InventoryParser::ExtractPlayerState(const std::string& filePath) {
 void InventoryParser::ExtractPlayerState(const nlohmann::json& saveData) {
     m_inventorySlots.clear();
     m_playerState.equippedTech.clear();
+    m_units = 0;
+    m_nanites = 0;
+    m_quicksilver = 0;
 
     try {
-        if (saveData.contains("PlayerStateData") && saveData["PlayerStateData"].contains("Inventory_Personal")) {
-            const auto& inventory = saveData["PlayerStateData"]["Inventory_Personal"];
+        const nlohmann::json* psd = nullptr;
+
+        if (saveData.contains("PlayerStateData")) {
+            psd = &saveData["PlayerStateData"];
+        } else if (saveData.contains("BaseContext") && saveData["BaseContext"].contains("PlayerStateData")) {
+            psd = &saveData["BaseContext"]["PlayerStateData"];
+        }
+
+        if (psd != nullptr) {
+            m_units = psd->value("Units", 0LL);
+            m_nanites = psd->value("Nanites", 0LL);
+            m_quicksilver = psd->value("Specials", 0LL);
+
+            if (psd->contains("Inventory_Personal")) {
+                const auto& inventory = (*psd)["Inventory_Personal"];
 
             int totalSlots = 0;
             if (inventory.contains("ValidSlotIndices")) {
@@ -241,6 +257,7 @@ void InventoryParser::ExtractPlayerState(const nlohmann::json& saveData) {
             } else {
                 m_playerState.inventoryFullness = 0.0f;
             }
+            }
         }
     } catch (const nlohmann::json::exception& e) {
         std::cerr << "Error extracting player state: " << e.what() << std::endl;
@@ -289,6 +306,9 @@ void InventoryParser::ParseItemMapping(const std::string& mappingFilePath) {
 
 HoardReport InventoryParser::GenerateHoardReport() {
     HoardReport report;
+    report.units = m_units;
+    report.nanites = m_nanites;
+    report.quicksilver = m_quicksilver;
     DragonTear::TearEngine engine;
 
     for (const auto& slot : m_inventorySlots) {

@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     WebServer server(8080);
     std::mutex reportMutex;
 
-    auto updateReport = [&](const std::string& filePath) {
+    auto updateReport = [&](const std::string& filePath, std::filesystem::file_time_type lastWriteTime) {
         std::lock_guard<std::mutex> lock(reportMutex);
         parser.ExtractPlayerState(filePath);
         auto newReport = parser.GenerateHoardReport();
@@ -67,6 +67,16 @@ int main(int argc, char* argv[]) {
         newReportJson["keep"] = newReport.keep;
         newReportJson["sell"] = newReport.sell;
         newReportJson["use"] = newReport.use;
+        newReportJson["units"] = newReport.units;
+        newReportJson["nanites"] = newReport.nanites;
+        newReportJson["quicksilver"] = newReport.quicksilver;
+
+        auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+            lastWriteTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()
+        );
+        std::time_t tt = std::chrono::system_clock::to_time_t(sctp);
+        newReportJson["lastSaveTime"] = static_cast<long long>(tt);
+
         server.UpdateReport(newReportJson);
     };
 
@@ -89,7 +99,7 @@ int main(int argc, char* argv[]) {
 
     if (!newestFile.empty()) {
         std::cout << "Parsing initial save file " << newestFile << "...\n";
-        updateReport(newestFile);
+        updateReport(newestFile, newestTime);
     }
 
     // Setup watcher
@@ -97,7 +107,13 @@ int main(int argc, char* argv[]) {
     watcher.OnChange([&](const std::string& changedFilePath) {
         std::string filename = std::filesystem::path(changedFilePath).filename().string();
         std::cout << "[DTHM] Save file updated detected: " << filename << ". Regenerating Hoard Report...\n";
-        updateReport(changedFilePath);
+        std::filesystem::file_time_type writeTime;
+        try {
+            writeTime = std::filesystem::last_write_time(changedFilePath);
+        } catch (...) {
+            writeTime = std::filesystem::file_time_type::clock::now();
+        }
+        updateReport(changedFilePath, writeTime);
     });
 
     // Start background tasks
