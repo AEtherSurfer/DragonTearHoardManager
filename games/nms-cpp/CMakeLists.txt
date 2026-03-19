@@ -25,7 +25,8 @@ add_library(dthm_oracle STATIC
 )
 
 target_include_directories(dthm_oracle PUBLIC src)
-target_link_libraries(dthm_oracle PRIVATE core nlohmann_json::nlohmann_json httplib::httplib Threads::Threads)
+target_link_libraries(dthm_oracle core nlohmann_json::nlohmann_json httplib::httplib lz4_static)
+target_include_directories(dthm_oracle PRIVATE ${lz4_SOURCE_DIR}/lib)
 
 add_executable(dthm_oracle_exe src/main.cpp)
 target_link_libraries(dthm_oracle_exe PRIVATE dthm_oracle core nlohmann_json::nlohmann_json httplib::httplib Threads::Threads)
