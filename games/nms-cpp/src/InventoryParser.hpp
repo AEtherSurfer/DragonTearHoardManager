@@ -40,6 +40,9 @@ public:
     int GetPopulatedSlots() const { return m_populatedSlots; }
     int GetTotalSlots() const { return m_totalSlots; }
 
+    // Decompress an NMS save file (LZ4 blocks) if compressed
+    static std::string DecompressSaveData(const std::vector<uint8_t>& data);
+
 private:
     DragonTear::PlayerState m_playerState;
     std::vector<DragonTear::ItemData> m_itemMapping;

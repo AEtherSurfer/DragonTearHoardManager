@@ -20,6 +20,17 @@ project(DragonTearHoardManager)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# External Dependencies
+include(FetchContent)
+
+FetchContent_Declare(
+  lz4
+  GIT_REPOSITORY https://github.com/lz4/lz4.git
+  GIT_TAG        v1.9.4
+  SOURCE_SUBDIR  build/cmake
+)
+FetchContent_MakeAvailable(lz4)
+
 # Add subdirectories
 add_subdirectory(core)
 add_subdirectory(games/nms)
@@ -30,8 +41,8 @@ add_subdirectory(games/nms-cpp)
 enable_testing()
 find_package(GTest REQUIRED)
 
-add_executable(dthm_tests tests/test_logic.cpp)
+add_executable(dthm_tests tests/test_logic.cpp tests/test_real_saves.cpp)
 target_compile_definitions(dthm_tests PRIVATE TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data/")
-target_link_libraries(dthm_tests core dthm_oracle nlohmann_json::nlohmann_json GTest::gtest_main)
+target_link_libraries(dthm_tests core dthm_oracle nlohmann_json::nlohmann_json GTest::gtest_main lz4_static)
 
 add_test(NAME TearLogicTests COMMAND dthm_tests)

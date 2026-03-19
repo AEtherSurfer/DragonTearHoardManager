@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <lz4.h>
 
 namespace dthm {
 namespace nms {
@@ -29,18 +30,122 @@ InventoryParser::InventoryParser() {
 InventoryParser::~InventoryParser() {
 }
 
+std::string InventoryParser::DecompressSaveData(const std::vector<uint8_t>& data) {
+    if (data.empty()) return "";
+
+    // If it starts with '{' (0x7B), it's plaintext JSON (or binary with garbage we will strip later)
+    if (data[0] == 0x7B) {
+        return std::string(data.begin(), data.end());
+    }
+
+    const uint32_t BLOCK_MAGIC = 0xFEEDA1E5;
+    const size_t BLOCK_HEADER_SIZE = 16;
+    const size_t MAX_CHUNK_SIZE = 0x80000;
+
+    std::string decompressedData;
+    size_t offset = 0;
+
+    while (offset < data.size()) {
+        if (offset + BLOCK_HEADER_SIZE > data.size()) {
+            std::cerr << "[Decompress] Unexpected EOF while reading block header at offset " << offset << std::endl;
+            break;
+        }
+
+        // Little endian read
+        uint32_t magic = data[offset] | (data[offset+1] << 8) | (data[offset+2] << 16) | (data[offset+3] << 24);
+        if (magic != BLOCK_MAGIC) {
+            std::cerr << "[Decompress] Invalid magic bytes at offset " << offset << std::endl;
+            // Maybe it's not compressed at all but has some other weird header, fallback to string copy
+            if (offset == 0) return std::string(data.begin(), data.end());
+            break;
+        }
+
+        uint32_t compressedSize = data[offset+4] | (data[offset+5] << 8) | (data[offset+6] << 16) | (data[offset+7] << 24);
+        uint32_t decompressedSize = data[offset+8] | (data[offset+9] << 8) | (data[offset+10] << 16) | (data[offset+11] << 24);
+
+        if (decompressedSize > MAX_CHUNK_SIZE) {
+            std::cerr << "[Decompress] Chunk too large at offset " << offset << std::endl;
+            break;
+        }
+
+        offset += BLOCK_HEADER_SIZE;
+
+        if (offset + compressedSize > data.size()) {
+            std::cerr << "[Decompress] Unexpected EOF while reading block payload at offset " << offset << std::endl;
+            break;
+        }
+
+        std::vector<char> decompressedChunk(decompressedSize);
+        int bytesDecompressed = LZ4_decompress_safe(
+            reinterpret_cast<const char*>(&data[offset]),
+            decompressedChunk.data(),
+            compressedSize,
+            decompressedSize
+        );
+
+        if (bytesDecompressed < 0 || bytesDecompressed != static_cast<int>(decompressedSize)) {
+            std::cerr << "[Decompress] LZ4 decompression failed at offset " << offset << std::endl;
+            break;
+        }
+
+        decompressedData.append(decompressedChunk.begin(), decompressedChunk.end());
+        offset += compressedSize;
+    }
+
+    return decompressedData;
+}
+
 std::string InventoryParser::ExtractPlayerState(const std::string& filePath) {
-    SaveManager saveManager;
-
-    std::string unencryptedJson = saveManager.ReadSaveFile(filePath);
-
-    if (unencryptedJson.empty()) {
-        std::cerr << "Save file is empty or could not be read." << std::endl;
+    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        std::cerr << "[Dragon's Eye] Could not gaze upon the save file: " << filePath << std::endl;
         return "";
     }
 
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> buffer(size);
+    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        std::cerr << "[Dragon's Eye] Failed to read save file bytes: " << filePath << std::endl;
+        return "";
+    }
+
+    std::string unencryptedJson = DecompressSaveData(buffer);
+    if (unencryptedJson.empty()) {
+        std::cerr << "[Dragon's Eye] Save file is empty or could not be decompressed: " << filePath << std::endl;
+        return "";
+    }
+
+    // Strip out garbage NMS binary headers from plaintext if any exist just in case
+    size_t bracePos = unencryptedJson.find('{');
+    if (bracePos != std::string::npos && bracePos > 0) {
+        unencryptedJson = unencryptedJson.substr(bracePos);
+    }
+
+    // Remove null bytes
+    unencryptedJson.erase(std::remove(unencryptedJson.begin(), unencryptedJson.end(), '\0'), unencryptedJson.end());
+
+    // Replace unescaped control chars so JSON parse won't throw
+    for (size_t i = 0; i < unencryptedJson.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(unencryptedJson[i]);
+        if (c < 32 && c != '\n' && c != '\r' && c != '\t') {
+            unencryptedJson[i] = '?';
+        }
+    }
+
+    // Ensure it ends at the last closing brace
+    size_t lastBracePos = unencryptedJson.rfind('}');
+    if (lastBracePos != std::string::npos) {
+        unencryptedJson = unencryptedJson.substr(0, lastBracePos + 1);
+    }
+
     try {
-        nlohmann::json j = nlohmann::json::parse(unencryptedJson);
+        nlohmann::json j = nlohmann::json::parse(unencryptedJson, nullptr, false, true); // ignore_comments=true
+        if (j.is_discarded()) {
+             std::cerr << "[Dragon's Eye] The runes are discarded by JSON parser." << std::endl;
+             return "";
+        }
         ExtractPlayerState(j);
         return j.dump();
     } catch (const nlohmann::json::parse_error& e) {
